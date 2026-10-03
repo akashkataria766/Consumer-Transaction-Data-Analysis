@@ -95,10 +95,6 @@ The optional `currency` or `currency_code` column is auto-detected when present.
 
 Use `sample_transactions.csv` for a quick showcase or `test_transactions.csv` for a 100-row verification of the complete upload and analysis workflow.
 
-## Screenshots
-
-![Dashboard](transaction_dashboard.png)
-
 ## Author
 
-Aakash Kataria | MCA — Kurukshetra University | Data Analytics Project
+Aakash Kataria
