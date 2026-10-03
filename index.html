@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Consumer Transaction Data Analysis - a local analytics workspace." />
+  <title>Consumer Transaction Data Analysis</title>
+  <style>
+    :root {
+      --navy: #1f3864;
+      --navy-deep: #102440;
+      --ink: #172235;
+      --muted: #697589;
+      --line: #dbe3ec;
+      --paper: #f6f8fb;
+      --white: #ffffff;
+      --coral: #e56f57;
+      --mint: #64b9a8;
+      --gold: #e6b85c;
+      --shadow: 0 18px 50px rgba(16, 36, 64, 0.12);
+      --ease: cubic-bezier(.2,.8,.2,1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.5;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1240px, calc(100% - 300px)); margin: 0 40px 0 260px; }
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      margin-left: 220px;
+      border-bottom: 1px solid rgba(219, 227, 236, .85);
+      background: rgba(246, 248, 251, .88);
+      backdrop-filter: blur(18px);
+    }
+    .topbar-inner { display: flex; justify-content: space-between; align-items: center; min-height: 72px; gap: 24px; }
+    .side-rail { position: fixed; inset: 0 auto 0 0; z-index: 20; display: flex; flex-direction: column; width: 220px; padding: 28px 22px; color: var(--white); background: var(--navy); box-shadow: 8px 0 24px rgba(16,36,64,.15); }
+    .side-rail .brand { color: var(--white); }
+    .rail-kicker { margin: 46px 0 14px; color: #9ed8cc; font: 700 10px Arial, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+    .rail-link { display: flex; gap: 10px; align-items: center; padding: 11px 0; color: #d5e1f1; font: 13px Arial, sans-serif; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .rail-link:hover { color: #fff; }
+    .rail-footer { margin-top: auto; color: #a7b8cf; font: 11px/1.6 Arial, sans-serif; }
+    .brand { display: flex; align-items: center; gap: 12px; color: var(--navy); font-weight: 700; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; color: var(--white); background: var(--navy); box-shadow: 5px 5px 0 var(--coral); font-family: Arial, sans-serif; font-size: 15px; }
+    .nav { display: flex; gap: 22px; font: 13px Arial, sans-serif; }
+    .nav a { color: var(--muted); text-decoration: none; }
+    .nav a:hover { color: var(--navy); }
+
+    .hero { position: relative; overflow: hidden; padding: 74px 0 58px; background: var(--navy-deep); color: var(--white); }
+    .hero::before, .hero::after { content: ""; position: absolute; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; pointer-events: none; }
+    .hero::before { width: 550px; height: 550px; top: -330px; right: -110px; animation: drift 14s ease-in-out infinite alternate; }
+    .hero::after { width: 340px; height: 340px; bottom: -250px; left: 45%; animation: drift 17s ease-in-out infinite alternate-reverse; }
+    .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.25fr .75fr; align-items: end; gap: 60px; }
+    .eyebrow { margin: 0 0 18px; color: #9ed8cc; font: 700 11px Arial, sans-serif; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 730px; margin: 0; font-size: clamp(42px, 7vw, 82px); line-height: .94; letter-spacing: -.065em; font-weight: 700; }
+    .hero-copy { max-width: 550px; margin: 24px 0 0; color: #c6d3e5; font: 17px/1.6 Arial, sans-serif; }
+    .hero-side { border-left: 1px solid rgba(255,255,255,.23); padding-left: 28px; animation: reveal .8s var(--ease) both .25s; }
+    .hero-side strong { display: block; margin-bottom: 8px; color: #fff; font-size: 25px; }
+    .hero-side span { color: #a7b8cf; font: 13px/1.6 Arial, sans-serif; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .button { display: inline-flex; align-items: center; gap: 9px; border: 0; border-radius: 8px; padding: 12px 16px; color: var(--navy-deep); background: #e9f3ef; font: 700 13px Arial, sans-serif; text-decoration: none; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+    .button:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(0,0,0,.2); }
+    .button.secondary { color: #e9f3ef; background: transparent; border: 1px solid rgba(255,255,255,.3); }
+
+    main { padding: 42px 0 80px; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 18px; padding: 12px 14px; border-left: 4px solid var(--navy); background: rgba(31,56,100,.05); animation: reveal .65s var(--ease) both; }
+    .section-kicker { margin: 0 0 6px; color: var(--coral); font: 700 11px Arial, sans-serif; letter-spacing: .13em; text-transform: uppercase; }
+    h2 { margin: 0; color: var(--navy); font-size: 31px; letter-spacing: -.045em; }
+    .section-note { color: var(--muted); font: 13px Arial, sans-serif; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 42px; }
+    .metric, .panel { border: 1px solid var(--line); border-radius: 12px; background: var(--white); box-shadow: var(--shadow); }
+    .metric { position: relative; overflow: hidden; min-height: 142px; padding: 20px; background: linear-gradient(135deg, #fff 0%, #eaf1fb 100%); animation: reveal .65s var(--ease) both; transition: transform .2s var(--ease), box-shadow .2s var(--ease); }
+    .metric:hover { transform: translateY(-5px); box-shadow: 0 24px 54px rgba(16,36,64,.2); }
+    .metric:nth-child(2) { animation-delay: .08s; } .metric:nth-child(3) { animation-delay: .16s; } .metric:nth-child(4) { animation-delay: .24s; }
+    .metric::after { content: ""; position: absolute; width: 90px; height: 90px; right: -36px; bottom: -48px; border-radius: 50%; background: var(--mint); opacity: .22; }
+    .metric-label { color: var(--muted); font: 11px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .metric-value { display: block; margin-top: 14px; color: var(--navy); font-size: 31px; letter-spacing: -.05em; }
+    .metric-detail { display: block; margin-top: 5px; color: var(--muted); font: 12px Arial, sans-serif; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; }
+    .panel { padding: 24px; }
+    .panel-wide { min-height: 360px; }
+    .panel-head { display: flex; justify-content: space-between; align-items: start; gap: 15px; margin-bottom: 20px; }
+    .panel h3 { margin: 0; color: var(--navy); font-size: 21px; letter-spacing: -.035em; }
+    .panel p { margin: 4px 0 0; color: var(--muted); font: 12px Arial, sans-serif; }
+    .chart-wrap { min-height: 255px; }
+    svg { width: 100%; height: 255px; overflow: visible; }
+    .axis-label { fill: var(--muted); font: 10px Arial, sans-serif; }
+    .bar { fill: var(--navy); transform-origin: bottom; animation: grow .8s var(--ease) both; }
+    .bar:hover { fill: var(--coral); }
+    .line { fill: none; stroke: #4472c4; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .dot { fill: var(--white); stroke: #4472c4; stroke-width: 3; }
+    .gridline { stroke: var(--line); stroke-dasharray: 3 5; }
+    .donut-track { fill: none; stroke: #edf1f5; stroke-width: 26; }
+    .donut-segment { fill: none; stroke-width: 26; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray .8s var(--ease); }
+    .donut-center { fill: var(--navy); font-size: 22px; font-weight: 700; text-anchor: middle; }
+    .legend { display: grid; gap: 9px; margin-top: 8px; font: 12px Arial, sans-serif; }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--muted); }
+    .legend-label { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+    .swatch { width: 9px; height: 9px; border-radius: 2px; }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+    .insight { padding: 20px; border-left: 3px solid var(--coral); background: #fff; }
+    .insight:nth-child(2) { border-color: var(--mint); } .insight:nth-child(3) { border-color: var(--gold); }
+    .insight strong { display: block; margin-bottom: 6px; color: var(--navy); font-size: 17px; }
+    .insight span { color: var(--muted); font: 13px/1.55 Arial, sans-serif; }
+
+    .upload { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; margin-top: 42px; padding: 25px; border-radius: 12px; color: var(--white); background: var(--navy); box-shadow: var(--shadow); }
+    .upload h2 { color: var(--white); font-size: 25px; }
+    .upload p { margin: 6px 0 0; color: #bfcee2; font: 13px Arial, sans-serif; }
+    .file-input { display: none; }
+    .upload-label { display: inline-flex; align-items: center; gap: 10px; padding: 12px 17px; border-radius: 8px; color: var(--navy); background: #e9f3ef; font: 700 13px Arial, sans-serif; cursor: pointer; }
+    .status { grid-column: 1 / -1; display: none; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.2); color: #bfe4d9; font: 12px Arial, sans-serif; }
+    .status.success::before { content: "✓ "; font-weight: 700; }
+    .status.error { color: #ffd8d2; background: rgba(173, 45, 35, .28); border: 1px solid rgba(255,180,170,.45); border-radius: 7px; }
+    .status.error::before { content: "! "; font-weight: 700; }
+    .outputs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .output-link { color: var(--navy); background: #eef3f8; border-radius: 6px; padding: 9px 12px; font: 700 12px Arial, sans-serif; text-decoration: none; }
+    .output-link:hover { color: var(--white); background: var(--coral); }
+    .output-note { margin-top: 13px !important; color: var(--muted) !important; font-size: 11px !important; }
+    .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0 16px; font: 12px Arial, sans-serif; color: var(--muted); }
+    .filter-select { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; color: var(--navy); background: var(--white); font: 700 12px Arial, sans-serif; }
+    footer { padding: 24px 0 40px; color: var(--muted); font: 12px Arial, sans-serif; text-align: center; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 28px; color: #fff; text-align: center; background: var(--navy); }
+    .loading-overlay.active { display: flex; animation: overlay-in .25s ease both; }
+    .loading-spinner { width: 62px; height: 62px; margin-bottom: 30px; border: 4px solid rgba(255,255,255,.22); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+    .loading-fact { max-width: 760px; font: 600 clamp(23px, 3vw, 38px)/1.25 Georgia, serif; }
+    .loading-label { margin-top: 18px; color: #b9cce5; font: 11px Arial, sans-serif; letter-spacing: .13em; text-transform: uppercase; }
+
+    @keyframes reveal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes grow { from { transform: scaleY(0); opacity: .2; } to { transform: scaleY(1); opacity: 1; } }
+    @keyframes drift { from { transform: translate(0, 0) rotate(0); } to { transform: translate(20px, 18px) rotate(14deg); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    @media (max-width: 850px) { .side-rail { display: none; } .topbar { margin-left: 0; } .shell { width: min(100% - 40px, 1240px); margin: 0 auto; } .hero-grid, .dashboard-grid { grid-template-columns: 1fr; } .hero-side { border-left: 0; border-top: 1px solid rgba(255,255,255,.23); padding: 20px 0 0; } .metrics { grid-template-columns: repeat(2, 1fr); } .insight-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .shell { width: min(100% - 28px, 1240px); } .nav { display: none; } .hero { padding-top: 52px; } h1 { font-size: 49px; } .metrics { grid-template-columns: 1fr; } .upload { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+    /* Light showcase workspace: keep the navy rail, let the analysis breathe. */
+    body { background: #f8fafc; font-family: Arial, sans-serif; }
+    .topbar { min-height: 46px; background: rgba(255,255,255,.94); }
+    .topbar-inner { min-height: 46px; }
+    .topbar .brand { display: none; }
+    .topbar .nav { margin-left: auto; }
+    .hero { padding: 34px 0 30px; color: var(--ink); background: #fff; border-bottom: 1px solid var(--line); }
+    .hero::before, .hero::after { border-color: rgba(31,56,100,.08); }
+    .hero-grid { align-items: center; gap: 40px; }
+    .eyebrow { color: #4472c4; margin-bottom: 10px; }
+    h1 { max-width: 650px; color: var(--navy); font-size: clamp(38px, 5vw, 58px); letter-spacing: -.045em; }
+    .hero-copy { max-width: 620px; margin: 14px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+    .hero-side { padding: 18px 0 18px 24px; border-left-color: var(--line); }
+    .hero-side strong { color: var(--navy); font-size: 19px; }
+    .hero-side span { color: var(--muted); }
+    .button { color: #fff; background: var(--navy); }
+    .button.secondary { color: var(--navy); background: #e8f0fe; border-color: #c7d7ef; }
+    main { padding-top: 28px; }
+    .section-head { margin-bottom: 14px; background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--navy); border-radius: 8px; }
+    .metric, .panel { border-color: var(--line); box-shadow: 0 8px 24px rgba(31,56,100,.07); }
+    .metric { min-height: 124px; padding: 17px; }
+    .metric-value { margin-top: 9px; font-size: 27px; }
+    .panel { padding: 19px; }
+    .panel-wide { min-height: 330px; }
+    .upload { grid-template-columns: 1fr auto; margin-top: 28px; padding: 22px; color: var(--ink); background: #fff; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(31,56,100,.07); }
+    .upload h2 { color: var(--navy); font-size: 24px; }
+    .upload p { color: var(--muted); }
+    .upload-label { color: #fff; background: var(--navy); }
+    .status { border-top-color: var(--line); color: #16805c; }
+    .output-link { color: #fff; background: var(--navy); }
+    .output-link:hover { color: #fff; background: #4472c4; }
+    .insight { border: 1px solid var(--line); border-left: 4px solid var(--navy); border-radius: 8px; box-shadow: 0 6px 18px rgba(31,56,100,.05); }
+    .insight:nth-child(2), .insight:nth-child(3) { border-left-color: var(--navy); }
+    .rail-link[href="#workflow"] { display: none; }
+    .rail-kicker { margin-top: 38px; }
+    .nav a[href="#workflow"] { display: none; }
+    footer { border-top: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <aside class="side-rail">
+    <div class="brand"><span class="brand-mark">CT</span><span>Consumer<br />Transactions</span></div>
+    <p class="rail-kicker">Workspace</p>
+    <a class="rail-link" href="#dashboard">▦ <span>Dashboard</span></a>
+    <p class="rail-footer">Local-first reporting<br />Python pipeline · HTML report</p>
+  </aside>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand"><span class="brand-mark">CT</span><span>Consumer Transactions</span></div>
+      <nav class="nav" aria-label="Main navigation"><a href="#dashboard">Dashboard</a><a href="sample_transactions.csv" download>Showcase file</a></nav>
+    </div>
+  </header>
+  <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div class="loading-fact" id="loadingFact"></div>
+    <div class="loading-label">Did you know? — Loading your analysis...</div>
+  </div>
+
+  <section class="hero" id="overview">
+    <div class="shell hero-grid">
+      <div>
+        <p class="eyebrow">Local analytics workspace / 2025-26</p>
+        <h1>See the story behind every transaction.</h1>
+        <p class="hero-copy">A clean, practical view of consumer behavior, revenue movement, and unusual orders. Run the Python pipeline, then open this page locally for a quick readout.</p>
+        <div class="hero-actions"><a class="button" href="#dashboard">Explore dashboard <span>↓</span></a><label class="button secondary" for="csvInput">Load CSV <span>＋</span></label></div>
+      </div>
+      <div class="hero-side"><strong>Ready for local use.</strong><span>No server, account, or web connection required. Download the folder from GitHub, run the pipeline, and open this file in your browser.</span></div>
+    </div>
+  </section>
+
+  <main class="shell">
+    <section id="dashboard">
+      <div class="section-head"><div><p class="section-kicker">Signal / 01</p><h2>Executive snapshot</h2></div><span class="section-note" id="dataMode">Demo preview · load CSV for live values</span></div>
+      <div class="metrics">
+        <article class="metric"><span class="metric-label">Transactions</span><strong class="metric-value" id="totalTransactions">500</strong><span class="metric-detail">cleaned records</span></article>
+        <article class="metric"><span class="metric-label">Revenue</span><strong class="metric-value" id="totalRevenue">$773.4k</strong><span class="metric-detail">gross transaction value</span></article>
+        <article class="metric"><span class="metric-label">Average order</span><strong class="metric-value" id="averageOrder">$1,546</strong><span class="metric-detail">per transaction</span></article>
+        <article class="metric"><span class="metric-label">Completed</span><strong class="metric-value" id="completedRate">69.8%</strong><span class="metric-detail">of all orders</span></article>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="panel panel-wide"><div class="panel-head"><div><h3>Revenue rhythm</h3><p>Monthly transaction value across the reporting period</p></div><span class="section-note" id="bestMonth">Peak: March 2026</span></div><div class="chart-wrap"><svg id="revenueChart" viewBox="0 0 720 255" role="img" aria-label="Monthly revenue chart"></svg></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Category mix</h3><p>Where the money is moving</p></div></div><div class="chart-wrap"><svg id="categoryChart" viewBox="0 0 280 220" role="img" aria-label="Category revenue donut chart"></svg></div><div class="legend" id="categoryLegend"></div></article>
+        <article class="panel panel-wide"><div class="panel-head"><div><h3>Order volume</h3><p>Monthly count of transactions</p></div><span class="section-note" id="volumeMonth">Peak: March 2026</span></div><div class="chart-wrap"><svg id="volumeChart" viewBox="0 0 720 255" role="img" aria-label="Monthly order volume chart"></svg></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Status pulse</h3><p>Operational state of every order</p></div></div><div class="filter-row"><label for="currencyFilter">Currency view</label><select class="filter-select" id="currencyFilter"><option value="ALL">All currencies</option><option value="USD">USD</option></select></div><div class="legend" id="statusLegend"></div><div class="outputs"><button class="output-link" id="pngButton" type="button">Download PNG ↓</button><button class="output-link" id="excelButton" type="button">Download Excel ↓</button></div><p class="output-note" id="outputNote">Downloads are created in your browser from the current view.</p></article>
+      </div>
+    </section>
+
+    <section class="insight-grid" aria-label="Key insights">
+      <article class="insight"><strong id="categoryInsight">Electronics leads revenue.</strong><span>Category performance is ranked from the cleaned transaction file.</span></article>
+      <article class="insight"><strong id="anomalyInsight">Outlier scan ready.</strong><span>Python analysis checks both the 99th percentile and Z-score thresholds.</span></article>
+      <article class="insight"><strong>Five-month view.</strong><span>December 2025 through April 2026 gives the 2025-26 trend enough room to compare momentum.</span></article>
+    </section>
+
+    <section class="upload" id="workflow">
+      <div><p class="section-kicker">Workflow / 02</p><h2>Bring in a fresh dataset.</h2><p>Use the single <strong>Load CSV</strong> button above. The browser accepts ordinary CSV files and explains any inferred fields or defaults.</p></div>
+        <input class="file-input" id="csvInput" type="file" accept=".csv,.txt,text/csv,text/plain" />
+      <div class="status" id="uploadStatus"></div>
+    </section>
+
+    <footer id="footerNote">Consumer Transaction Data Analysis · Python pipeline + local HTML report · Designed for GitHub download and offline use · <span id="currentDate"></span></footer>
+  </main>
+
+  <script>
+    const demo = {
+      months: ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04'],
+      revenue: [146200, 150500, 145600, 185600, 145500],
+      volume: [94, 95, 91, 113, 107],
+      categories: [['Electronics', 269779], ['Clothing', 231500], ['Home & Kitchen', 153900], ['Books', 118238]],
+      statuses: [['COMPLETED', 349], ['PENDING', 101], ['CANCELLED', 50]], currencies: ['USD'], currency: 'USD',
+      total: 500, revenueTotal: 773417.49, average: 1546.83
+    };
+    const colors = ['#1f3864', '#2d5591', '#4472c4', '#6f96d0', '#a8c2e6'];
+    const factLibrary = [
+      'The term "Data Scientist" was coined in 2008 by DJ Patil and Jeff Hammerbacher.',
+      'Netflix saves $1 billion per year using data analytics to reduce customer churn.',
+      "90% of the world's data was generated in the last two years alone.",
+      'The global data analytics market is expected to reach $650 billion by 2029.',
+      'Amazon uses over 60 machine learning models to predict what you will buy next.',
+      'A single Boeing 737 generates 240 terabytes of data per flight.',
+      'SQL was invented at IBM in 1974 and is still the most used data language today.',
+      'Google processes over 8.5 billion search queries every single day.',
+      'Excel was first released in 1985 and still powers 750 million users worldwide.',
+      'The average data analyst saves their company 20 hours per week through automation.',
+      "Data cleaning takes up 60–80% of a data analyst's total working time.",
+      'Walmart collects 2.5 petabytes of customer transaction data every hour.',
+      'The first computer bug was an actual moth found in a Harvard computer in 1947.',
+      'Python became the most popular programming language in the world in 2022.',
+      'Pandas library was created by Wes McKinney in 2008 while working at a hedge fund.',
+      'The word "algorithm" comes from the name of Persian mathematician Al-Khwarizmi.',
+      'LinkedIn uses data analytics to rank your profile in recruiter search results.',
+      'Spotify analyzes 30 billion data points daily to power its recommendation engine.',
+      'The first spreadsheet software, VisiCalc, launched in 1979 and changed business forever.',
+      'Over 328 million terabytes of new data are created every single day globally.',
+      'A data analyst at an entry level can process insights that once required a full team.',
+      'Oracle was founded in 1977 and named after a CIA project its founders worked on.',
+      'The 99th percentile threshold is a standard statistical method for outlier detection.',
+      'Z-score measures how many standard deviations a value is from the mean.',
+      'Pivot Tables were introduced in Excel in 1994 and revolutionized business reporting.',
+      'The term "Big Data" was first used in a research paper by NASA scientists in 1997.',
+      'Deloitte employs over 15,000 analytics professionals across its global practices.',
+      'Amazon Web Services stores data for over 1 million businesses worldwide.',
+      'India produces the second-largest number of data professionals in the world.',
+      'A single tweet generates approximately 0.5 kilobytes of structured data.',
+      'The human brain processes visual information 60,000 times faster than text.',
+      'Good data visualization can reduce decision-making time by up to 70%.',
+      'Matplotlib was first released in 2003 and is still the foundation of Python charting.',
+      'NumPy arrays are up to 50 times faster than Python lists for numerical operations.',
+      'The first ATM was installed in London in 1967 and generated the first banking transaction data.',
+      'McKinsey estimates that data-driven organizations are 23 times more likely to acquire customers.',
+      'EXL Service manages analytics operations for over 50 Fortune 500 companies.',
+      'Data validation is the first line of defence against incorrect business decisions.',
+      'Referential integrity ensures every foreign key in a database points to a valid record.',
+      'The median is preferred over mean for imputing missing values in skewed distributions.',
+      'Duplicate records in a database can inflate revenue figures by up to 15%.',
+      'A well-designed dashboard can communicate the same insight 5 times faster than a report.',
+      'The word "statistics" comes from the Latin word for "state" — it was invented to govern nations.',
+      'Florence Nightingale invented the pie chart in 1858 to visualize hospital death rates.',
+      'Over 70% of business intelligence projects fail due to poor data quality at the source.',
+      'SQL joins were inspired by mathematical set theory operations developed in the 1960s.',
+      'VLOOKUP is the most searched Excel formula on the internet every single year.',
+      'The first data warehouse was built by Walmart in the 1980s to track store inventory.',
+      "Python's Pandas library name comes from 'Panel Data' — a term used in econometrics.",
+      'Every second, 1.7 megabytes of new data is created for every person on Earth.'
+    ];
+    const seenFacts = new Set();
+    let currentData = demo;
+    let currentCurrency = 'USD';
+    const supportedCurrencies = { USD: ['USD', '$'], EUR: ['EURO', '€'], INR: ['INR', '₹'], GBP: ['GBP', '£'], JPY: ['JPY', '¥'], CNY: ['CNY', '¥'], CAD: ['CAD', 'C$'], AUD: ['AUD', 'A$'], CHF: ['CHF', 'CHF '], SGD: ['SGD', 'S$'], AED: ['AED', 'AED '], SAR: ['SAR', 'SAR '] };
+    const currencySymbols = Object.fromEntries(Object.entries(supportedCurrencies).map(([code, values]) => [code, values[1]]));
+    const currencyAliases = { EURO: 'EUR', EUROS: 'EUR', DOLLAR: 'USD', DOLLARS: 'USD', RUPEE: 'INR', POUND: 'GBP', YEN: 'JPY', RENMINBI: 'CNY' };
+    const money = value => `${currencySymbols[currentCurrency] || (currentCurrency === 'ALL' ? '' : `${currentCurrency} `)}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const monthName = value => new Date(value + '-02').toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    const el = id => document.getElementById(id);
+    el('currentDate').textContent = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+    function showLoading() {
+      const available = factLibrary.filter(fact => !seenFacts.has(fact));
+      const fact = available[Math.floor(Math.random() * (available.length || factLibrary.length))] || factLibrary[0];
+      seenFacts.add(fact);
+      el('loadingFact').textContent = fact;
+      el('loadingOverlay').classList.add('active');
+      return performance.now();
+    }
+
+    function hideLoading(startedAt) {
+      window.setTimeout(() => el('loadingOverlay').classList.remove('active'), Math.max(0, 1500 - (performance.now() - startedAt)));
+    }
+
+    function parseCsvRow(row, delimiter = ',') {
+      const values = [];
+      let value = '', quoted = false;
+      for (let index = 0; index < row.length; index += 1) {
+        const character = row[index];
+        if (character === '"' && row[index + 1] === '"' && quoted) { value += '"'; index += 1; }
+        else if (character === '"') quoted = !quoted;
+        else if (character === delimiter && !quoted) { values.push(value.trim()); value = ''; }
+        else value += character;
+      }
+      values.push(value.trim());
+      return values;
+    }
+
+    function normalizeCurrency(value) {
+      const code = String(value || 'USD').trim().toUpperCase();
+      return currencyAliases[code] || code;
+    }
+
+    function drawBarChart(target, labels, values, color) {
+      const width = 720, height = 255, left = 48, bottom = 34, top = 16, chartHeight = height - bottom - top, chartWidth = width - left - 18;
+      const max = Math.max(...values) * 1.18, step = chartWidth / values.length, barWidth = Math.min(70, step * .56);
+      let svg = '';
+      [0, .5, 1].forEach(ratio => { const y = top + chartHeight * (1 - ratio); svg += `<line class="gridline" x1="${left}" x2="${width - 18}" y1="${y}" y2="${y}"/><text class="axis-label" x="4" y="${y + 4}">${money(max * ratio)}</text>`; });
+      values.forEach((value, index) => { const x = left + step * index + (step - barWidth) / 2, h = value / max * chartHeight, y = top + chartHeight - h; svg += `<rect class="bar" style="animation-delay:${index * 70}ms" x="${x}" y="${y}" width="${barWidth}" height="${h}" rx="5"/><text class="axis-label" text-anchor="middle" x="${x + barWidth / 2}" y="${height - 10}">${monthName(labels[index])}</text><text class="axis-label" text-anchor="middle" x="${x + barWidth / 2}" y="${y - 7}">${money(value)}</text>`; });
+      target.innerHTML = svg;
+    }
+
+    function drawLineChart(target, labels, values) {
+      const width = 720, height = 255, left = 48, right = 18, top = 18, bottom = 34, chartHeight = height - top - bottom, chartWidth = width - left - right, max = Math.max(...values) * 1.25, step = chartWidth / Math.max(values.length - 1, 1);
+      const points = values.map((value, index) => `${left + step * index},${top + chartHeight - value / max * chartHeight}`).join(' ');
+      let svg = `<polyline class="line" points="${points}"/>`;
+      [0, .5, 1].forEach(ratio => { const y = top + chartHeight * (1 - ratio); svg += `<line class="gridline" x1="${left}" x2="${width - right}" y1="${y}" y2="${y}"/><text class="axis-label" x="7" y="${y + 4}">${Math.round(max * ratio)}</text>`; });
+      values.forEach((value, index) => { const x = left + step * index, y = top + chartHeight - value / max * chartHeight; svg += `<circle class="dot" cx="${x}" cy="${y}" r="5"/><text class="axis-label" text-anchor="middle" x="${x}" y="${height - 10}">${monthName(labels[index])}</text><text class="axis-label" text-anchor="middle" x="${x}" y="${y - 10}">${value}</text>`; });
+      target.innerHTML = svg;
+    }
+
+    function drawDonut(target, items) {
+      const total = items.reduce((sum, item) => sum + item[1], 0), circumference = 2 * Math.PI * 70;
+      let offset = 0, svg = `<circle class="donut-track" cx="140" cy="105" r="70"/><text class="donut-center" x="140" y="101">${money(total)}</text><text class="axis-label" text-anchor="middle" x="140" y="121">total revenue</text>`;
+      items.forEach((item, index) => { const length = item[1] / total * circumference; svg += `<circle class="donut-segment" cx="140" cy="105" r="70" stroke="${colors[index]}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="-${offset}"/>`; offset += length; });
+      target.innerHTML = svg;
+    }
+
+    function render(data, live = false) {
+      el('totalTransactions').textContent = data.total.toLocaleString();
+      el('totalRevenue').textContent = money(data.revenueTotal / 1000) + 'k';
+      el('averageOrder').textContent = money(data.average);
+      const completed = data.statuses.find(item => item[0] === 'COMPLETED');
+      el('completedRate').textContent = ((completed[1] / data.total) * 100).toFixed(1) + '%';
+      const bestRevenue = data.revenue.indexOf(Math.max(...data.revenue));
+      const bestVolume = data.volume.indexOf(Math.max(...data.volume));
+      el('bestMonth').textContent = 'Peak: ' + monthName(data.months[bestRevenue]);
+      el('volumeMonth').textContent = 'Peak: ' + monthName(data.months[bestVolume]);
+      el('categoryInsight').textContent = data.categories[0][0] + ' leads revenue.';
+      el('anomalyInsight').textContent = 'Outlier scan configured.';
+      el('dataMode').textContent = live ? 'Live local CSV · recalculated in browser' : 'Demo preview · load CSV for live values';
+      drawBarChart(el('revenueChart'), data.months, data.revenue, colors[0]);
+      drawLineChart(el('volumeChart'), data.months, data.volume);
+      drawDonut(el('categoryChart'), data.categories);
+      el('categoryLegend').innerHTML = data.categories.map((item, index) => `<div class="legend-row"><span class="legend-label"><i class="swatch" style="background:${colors[index]}"></i>${item[0]}</span><strong>${money(item[1])}</strong></div>`).join('');
+      el('statusLegend').innerHTML = data.statuses.map((item, index) => `<div class="legend-row"><span class="legend-label"><i class="swatch" style="background:${colors[index + 1]}"></i>${item[0]}</span><strong>${item[1]} orders</strong></div>`).join('');
+      el('currencyFilter').value = currentCurrency;
+    }
+
+    function summarizeRecords(records) {
+      const monthMap = {}, categoryMap = {}, statusMap = {};
+      records.forEach(record => { const month = record.date.slice(0, 7); monthMap[month] = (monthMap[month] || 0) + record.amount; categoryMap[record.category] = (categoryMap[record.category] || 0) + record.amount; statusMap[record.status] = (statusMap[record.status] || 0) + 1; });
+      const months = Object.keys(monthMap).sort();
+      const revenueTotal = records.reduce((sum, record) => sum + record.amount, 0);
+      return { records, currencies: [...new Set(records.map(record => record.currency))].sort(), months, revenue: months.map(month => monthMap[month]), volume: months.map(month => records.filter(record => record.date.slice(0, 7) === month).length), categories: Object.entries(categoryMap).sort((a, b) => b[1] - a[1]), statuses: Object.entries(statusMap).sort((a, b) => b[1] - a[1]), total: records.length, revenueTotal, average: revenueTotal / records.length };
+    }
+
+    function parseCsv(text) {
+      const source = text.trim();
+      if (!source) throw new Error('empty file');
+      const firstLine = source.split(/\r?\n/, 1)[0];
+      const delimiter = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ((firstLine.match(/\t/g) || []).length ? '\t' : ',');
+      const rows = source.split(/\r?\n/).map(row => parseCsvRow(row, delimiter));
+      const headers = rows.shift().map(value => value.toLowerCase().trim().replace(/[\s-]+/g, '_'));
+      const findColumn = names => names.map(name => headers.indexOf(name)).find(index => index >= 0);
+      const numericRatio = index => rows.filter(row => row[index] !== undefined && row[index] !== '').filter(row => Number.isFinite(Number(String(row[index]).replace(/[^0-9.-]/g, '')))).length / Math.max(rows.length, 1);
+      const dateRatio = index => rows.filter(row => normalizeDate(row[index])).length / Math.max(rows.length, 1);
+      const textColumn = (excluded, minimumUnique = 2) => headers.map((header, index) => ({ index, unique: new Set(rows.map(row => row[index]).filter(Boolean)).size })).filter(item => !excluded.includes(item.index) && item.unique >= minimumUnique).sort((a, b) => b.unique - a.unique)[0]?.index;
+      const amountIndex = findColumn(['amount', 'total_amount', 'price', 'value', 'revenue', 'sales']) ?? headers.map((_, index) => index).filter(index => numericRatio(index) >= 0.5).sort((a, b) => numericRatio(b) - numericRatio(a))[0];
+      const categoryIndex = findColumn(['category', 'product_category', 'department', 'type', 'group']) ?? textColumn([amountIndex]);
+      const statusIndex = findColumn(['status', 'order_status', 'state', 'condition']);
+      const dateIndex = findColumn(['order_date', 'transaction_date', 'date', 'created_at', 'timestamp']) ?? headers.map((_, index) => index).filter(index => dateRatio(index) >= 0.5).sort((a, b) => dateRatio(b) - dateRatio(a))[0];
+      const currencyIndex = findColumn(['currency', 'currency_code', 'currency_type', 'curr']);
+      const notes = [];
+      if (amountIndex === undefined) notes.push('No numeric amount column found; each row was counted as 1.');
+      else if (!['amount', 'total_amount', 'price', 'value', 'revenue', 'sales'].includes(headers[amountIndex])) notes.push(`Amount inferred from "${headers[amountIndex]}".`);
+      if (dateIndex === undefined) notes.push('No date column found; all rows were placed in the current reporting period.');
+      if (categoryIndex === undefined) notes.push('No category column found; rows grouped as All Records.');
+      if (statusIndex === undefined) notes.push('No status column found; rows grouped as All Records.');
+      if (currencyIndex === undefined) notes.push('No currency column found; USD used as Default.');
+      const fallbackMonths = ['2025-12', '2026-01', '2026-02', '2026-03', '2026-04'];
+      const records = rows.filter(row => row.length > 0 && row.some(Boolean)).map((row, rowIndex) => ({ amount: amountIndex === undefined ? 1 : Number(String(row[amountIndex] || '0').replace(/[^0-9.-]/g, '')) || 0, category: categoryIndex === undefined ? 'All Records' : (row[categoryIndex] || 'Uncategorized'), status: statusIndex === undefined ? 'All Records' : (row[statusIndex] || 'Unknown'), date: dateIndex === undefined ? `${fallbackMonths[rowIndex % fallbackMonths.length]}-01` : normalizeDate(row[dateIndex]), currency: currencyIndex === undefined ? 'USD' : normalizeCurrency(row[currencyIndex]) })).filter(record => Number.isFinite(record.amount) && record.date);
+      if (!records.length) throw new Error('no usable rows');
+      return { ...summarizeRecords(records), notes };
+    }
+
+    function filterData(data, currency) {
+      const records = currency === 'ALL' ? data.records : data.records.filter(record => record.currency === currency);
+      return summarizeRecords(records);
+    }
+
+    function updateCurrencyOptions(currencies) {
+      const filter = el('currencyFilter');
+      const detected = new Set(currencies);
+      const options = Object.entries(supportedCurrencies).map(([code, values]) => `<option value="${code}" ${detected.has(code) ? '' : 'disabled'}>${values[0]}${detected.has(code) ? ' (Default)' : ' (not in file)'}</option>`).join('');
+      filter.innerHTML = '<option value="ALL">All currencies</option>' + options;
+      filter.value = currentCurrency;
+    }
+
+    function normalizeDate(value) {
+      const trimmed = String(value).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
+      const parsed = new Date(trimmed);
+      return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
+    }
+
+    function downloadPng() {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620"><rect width="100%" height="100%" fill="#f6f8fb"/><text x="50" y="58" font-family="Arial" font-size="30" font-weight="bold" fill="#1f3864">Consumer Transaction Dashboard · ${currentCurrency}</text><text x="50" y="94" font-family="Arial" font-size="16" fill="#697589">Revenue by month</text>${currentData.months.map((month, index) => { const height = currentData.revenue[index] / Math.max(...currentData.revenue) * 390; return `<rect x="${90 + index * 200}" y="${540 - height}" width="100" height="${height}" rx="8" fill="#1f3864"/><text x="${100 + index * 200}" y="570" font-family="Arial" font-size="16" fill="#172235">${month}</text><text x="${100 + index * 200}" y="${530 - height}" font-family="Arial" font-size="14" fill="#172235">${money(currentData.revenue[index])}</text>`; }).join('')}</svg>`;
+      const image = new Image(), canvas = document.createElement('canvas'), context = canvas.getContext('2d');
+      canvas.width = 1200; canvas.height = 620; image.onload = () => { context.drawImage(image, 0, 0); canvas.toBlob(blob => downloadBlob(blob, 'transaction_dashboard.png'), 'image/png'); }; image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      el('outputNote').textContent = 'PNG dashboard downloaded from the current filtered view.';
+    }
+
+    function downloadExcel() {
+      const rows = currentData.records || [];
+      const sheet = (name, cells) => `<Worksheet ss:Name="${name}"><Table>${cells.map(row => `<Row>${row.map(cell => `<Cell><Data ss:Type="String">${String(cell).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet>`;
+      const xml = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${sheet('Analysis Summary', [['Metric', 'Value'], ['Transactions', currentData.total], ['Revenue', currentData.revenueTotal], ['Average Order', currentData.average]])}${sheet('Category Breakdown', [['Category', 'Revenue'], ...currentData.categories])}${sheet('Monthly Trend', [['Month', 'Revenue', 'Orders'], ...currentData.months.map((month, index) => [month, currentData.revenue[index], currentData.volume[index]])])}</Workbook>`;
+      downloadBlob(new Blob([xml], { type: 'application/vnd.ms-excel' }), 'transaction_analysis.xls');
+      el('outputNote').textContent = 'Excel-compatible workbook downloaded from the current filtered view.';
+    }
+
+    el('csvInput').addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; const startedAt = showLoading(); const reader = new FileReader(); reader.onload = () => { try { const parsed = parseCsv(reader.result); if (!parsed.total) throw new Error('empty dataset'); currentData = parsed; currentCurrency = parsed.currencies.length === 1 ? parsed.currencies[0] : 'ALL'; updateCurrencyOptions(parsed.currencies); render(currentCurrency === 'ALL' ? parsed : filterData(parsed, currentCurrency), true); el('uploadStatus').className = 'status success'; el('uploadStatus').style.display = 'block'; el('uploadStatus').textContent = `${file.name} loaded successfully. Currencies: ${parsed.currencies.length ? parsed.currencies.join(', ') : 'USD (Default)'}. ${parsed.notes.length ? parsed.notes.join(' ') : 'All fields detected.'}`; } catch (error) { el('uploadStatus').className = 'status error'; el('uploadStatus').style.display = 'block'; el('uploadStatus').textContent = `This file could not be analyzed: ${error.message}. Select a readable .csv or .txt file with a header row.`; } finally { hideLoading(startedAt); } }; reader.readAsText(file); event.target.value = ''; });
+    el('currencyFilter').addEventListener('change', event => { currentCurrency = event.target.value; const filtered = currentCurrency === 'ALL' ? currentData : filterData(currentData, currentCurrency); render(filtered, true); el('dataMode').textContent = `Live local CSV · ${currentCurrency === 'ALL' ? 'all currencies' : currentCurrency} view`; el('outputNote').textContent = `Charts and downloads updated for ${currentCurrency === 'ALL' ? 'all currencies' : currentCurrency}.`; });
+    el('pngButton').addEventListener('click', downloadPng);
+    el('excelButton').addEventListener('click', downloadExcel);
+    currentData.records = demo.months.flatMap((month, monthIndex) => Array.from({ length: demo.volume[monthIndex] }, (_, index) => ({ amount: demo.revenue[monthIndex] / demo.volume[monthIndex], category: demo.categories[index % demo.categories.length][0], status: 'COMPLETED', date: `${month}-01`, currency: 'USD' })));
+    updateCurrencyOptions(demo.currencies);
+    render(demo);
+  </script>
+</body>
+</html>
