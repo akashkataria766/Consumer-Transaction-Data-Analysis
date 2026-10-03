@@ -254,12 +254,9 @@ with st.sidebar:
     st.markdown('<a class="sidebar-nav-item" href="#kpi-section">▦ &nbsp; Dashboard</a>', unsafe_allow_html=True)
     showcase_path = Path(__file__).with_name("sample_transactions.csv")
     if showcase_path.exists():
-        st.download_button(
-            "Showcase file · INR",
-            data=showcase_path.read_bytes(),
-            file_name="sample_transactions.csv",
-            mime="text/csv",
-            use_container_width=True,
+        st.markdown(
+            '<a class="sidebar-nav-item" href="sample_transactions.csv">▤ &nbsp; Showcase file · INR</a>',
+            unsafe_allow_html=True,
         )
     st.divider()
     sidebar_stats = st.empty()
@@ -273,21 +270,15 @@ if uploaded_file is None:
     st.stop()
 
 st.markdown(f'<span class="file-badge">✓ {uploaded_file.name} ready for analysis</span>', unsafe_allow_html=True)
-loading_placeholder, loading_started = show_loading_overlay()
-progress_bar = st.progress(0, text="Validating columns")
 
 try:
     raw_data = pd.read_csv(uploaded_file)
 except (pd.errors.ParserError, UnicodeDecodeError, OSError) as error:
-    progress_bar.empty()
-    finish_loading(loading_placeholder, loading_started)
     st.error(f"Could not read the uploaded CSV: {error}")
     st.stop()
 
 missing_columns = sorted(REQUIRED_COLUMNS - set(raw_data.columns))
 if missing_columns:
-    progress_bar.empty()
-    finish_loading(loading_placeholder, loading_started)
     st.error("Missing required columns: " + ", ".join(missing_columns))
     st.stop()
 
@@ -308,7 +299,7 @@ else:
         unsafe_allow_html=True,
     )
 
-progress_bar.progress(35, text="Cleaning data")
+loading_placeholder, loading_started = show_loading_overlay()
 
 with st.expander("Raw data sample"):
     st.dataframe(raw_data.head(10), use_container_width=True)
@@ -316,18 +307,14 @@ with st.expander("Raw data sample"):
 try:
     cleaned_data = clean_transactions(raw_data.copy())
 except (KeyError, TypeError, ValueError) as error:
-    progress_bar.empty()
     finish_loading(loading_placeholder, loading_started)
     st.error(f"Could not clean the uploaded CSV: {error}")
     st.stop()
 
 if cleaned_data.empty:
-    progress_bar.empty()
     finish_loading(loading_placeholder, loading_started)
     st.error("No valid transactions remain after cleaning. Check amounts, dates, and statuses.")
     st.stop()
-
-progress_bar.progress(70, text="Running analysis")
 
 with st.expander("Cleaned data sample"):
     st.dataframe(cleaned_data.head(10), use_container_width=True)
@@ -335,8 +322,6 @@ with st.expander("Cleaned data sample"):
 category_summary, monthly_summary, status_summary, customer_summary = build_summaries(cleaned_data.assign(
     month=cleaned_data["order_date"].dt.to_period("M").astype(str)
 ))
-progress_bar.progress(90, text="Building charts")
-
 health_score = len(cleaned_data) / len(raw_data) * 100
 health_color = "#16805c" if health_score >= 90 else "#a26b00" if health_score >= 70 else "#b53c32"
 date_range = f"{cleaned_data['order_date'].min():%b %Y} – {cleaned_data['order_date'].max():%b %Y}"
@@ -347,7 +332,6 @@ sidebar_stats.markdown(
 
 completed_count = int((cleaned_data["status"] == "COMPLETED").sum())
 completion_rate = completed_count / len(cleaned_data) * 100
-progress_bar.progress(100, text="Analysis ready")
 finish_loading(loading_placeholder, loading_started)
 
 st.markdown('<div id="kpi-section"></div>', unsafe_allow_html=True)
